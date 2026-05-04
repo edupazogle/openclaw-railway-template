@@ -531,7 +531,9 @@ function requireSetupAuth(req, res, next) {
 
 const app = express();
 app.disable("x-powered-by");
-app.use(express.json({ limit: "1mb" }));
+// FIXED: Removed global express.json() to preserve request body for proxy forwarding.
+// JSON parsing added per-route on /setup/* POST endpoints that need it.
+// app.use(express.json({ limit: "1mb" }));
 
 app.get("/styles.css", (_req, res) => {
   res.sendFile(path.join(process.cwd(), "src", "public", "styles.css"));
@@ -1081,7 +1083,7 @@ function validatePayload(payload) {
   return null;
 }
 
-app.post("/setup/api/run", requireSetupAuth, async (req, res) => {
+app.post("/setup/api/run", requireSetupAuth, express.json({ limit: "1mb" }), async (req, res) => {
   const stream = (chunk) => {
     if (chunk) res.write(chunk);
   };
@@ -1269,7 +1271,7 @@ app.get("/setup/api/debug", requireSetupAuth, async (_req, res) => {
   });
 });
 
-app.post("/setup/api/pairing/approve", requireSetupAuth, async (req, res) => {
+app.post("/setup/api/pairing/approve", requireSetupAuth, express.json({ limit: "1mb" }), async (req, res) => {
   const { channel, code } = req.body || {};
   const channelValue = String(channel || "").trim().toLowerCase();
   const codeValue = String(code || "").trim();
@@ -1325,7 +1327,7 @@ app.post("/setup/api/pairing/approve", requireSetupAuth, async (req, res) => {
   });
 });
 
-app.post("/setup/api/reset", requireSetupAuth, async (_req, res) => {
+app.post("/setup/api/reset", requireSetupAuth, express.json({ limit: "1mb" }), async (_req, res) => {
   try {
     if (gatewayProc) {
       intentionalRestart = true;
@@ -1344,7 +1346,7 @@ app.post("/setup/api/reset", requireSetupAuth, async (_req, res) => {
   }
 });
 
-app.post("/setup/api/doctor", requireSetupAuth, async (_req, res) => {
+app.post("/setup/api/doctor", requireSetupAuth, express.json({ limit: "1mb" }), async (_req, res) => {
   const args = ["doctor", "--non-interactive", "--repair"];
   const result = await runCmd(OPENCLAW_NODE, clawArgs(args));
   return res.status(result.code === 0 ? 200 : 500).json({
@@ -1369,7 +1371,7 @@ app.get("/setup/api/devices", requireSetupAuth, async (_req, res) => {
   }
 });
 
-app.post("/setup/api/devices/approve", requireSetupAuth, async (req, res) => {
+app.post("/setup/api/devices/approve", requireSetupAuth, express.json({ limit: "1mb" }), async (req, res) => {
   const requestId = String(req.body?.requestId || "").trim();
 
   try {
@@ -1434,7 +1436,7 @@ app.post("/setup/api/devices/approve", requireSetupAuth, async (req, res) => {
   }
 });
 
-app.post("/setup/api/devices/reject", requireSetupAuth, async (req, res) => {
+app.post("/setup/api/devices/reject", requireSetupAuth, express.json({ limit: "1mb" }), async (req, res) => {
   const { requestId } = req.body || {};
   if (!requestId) {
     return res.status(400).json({ ok: false, error: "Missing requestId" });
